@@ -1,7 +1,6 @@
 import {NextRequest} from "next/server";
 import axios from 'axios';
 import CryptoJS from 'crypto-js';
-import {hash} from "node:crypto";
 
 export async function GET(req: NextRequest){
 
@@ -71,5 +70,5 @@ export async function GET(req: NextRequest){
     const activeTickets = tickets.filter((ticket: { [x: string]: string; }) => ticket['status_name'] !== 'Done');
 
 
-    return new Response(activeTickets);
+    return Response.json(activeTickets);
 }

@@ -1,65 +1,200 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+import { format, isPast, isToday, addDays, parseISO, isValid } from "date-fns";
+
+interface Ticket {
+  delivery_date: string;
+  description: string;
+  id: string;
+  ticket_number: string;
+  subject: string;
+  status_name: string;
+  due_date: string;
+  created_at: string;
+  customer_name?: string;
+  assigned_to_name?: string;
+}
 
 export default function Home() {
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchTickets() {
+      try {
+        const response = await fetch("/api");
+        if (!response.ok) {
+          throw new Error("Failed to fetch tickets");
+        }
+        const data = await response.json();
+        
+        // Sorting by due date (ascending)
+        const sortedTickets = data.sort((a: Ticket, b: Ticket) => {
+          if (!a.due_date) return 1;
+          if (!b.due_date) return -1;
+          
+          let dateA = parseISO(a.due_date);
+          if (!isValid(dateA)) dateA = new Date(a.due_date);
+          
+          let dateB = parseISO(b.due_date);
+          if (!isValid(dateB)) dateB = new Date(b.due_date);
+
+          const timeA = isValid(dateA) ? dateA.getTime() : Number.MAX_SAFE_INTEGER;
+          const timeB = isValid(dateB) ? dateB.getTime() : Number.MAX_SAFE_INTEGER;
+          
+          return timeA - timeB;
+        });
+
+        setTickets(sortedTickets);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchTickets();
+  }, []);
+
+  const getStatusColor = (dueDate: string) => {
+    if (!dueDate) return "bg-gray-100 text-gray-800 border-gray-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700";
+    
+    // Try to parse the date. If it's already an ISO string or similar, parseISO works.
+    // If it's a "YYYY-MM-DD HH:mm:ss" format, parseISO also often works in modern date-fns.
+    let date = parseISO(dueDate);
+    
+    // Fallback for non-standard formats if parseISO fails
+    if (!isValid(date)) {
+      date = new Date(dueDate);
+    }
+
+    if (!isValid(date)) return "bg-gray-100 text-gray-800 border-gray-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700";
+
+    if (isPast(date) && !isToday(date)) {
+      return "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800"; // Past due
+    }
+    if (isToday(date)) {
+      return "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800"; // Due today
+    }
+    
+    const tenDaysFromNow = addDays(new Date(), 10);
+    if (date <= tenDaysFromNow) {
+      return "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-800"; // Due soon (within 3 days)
+    }
+    return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800"; // Safe
+  };
+
+  const formatDueDate = (dueDate: string) => {
+    if (!dueDate) return "No due date";
+    
+    let date = parseISO(dueDate);
+    if (!isValid(date)) {
+      date = new Date(dueDate);
+    }
+    
+    if (!isValid(date)) {
+      console.warn(`Invalid date encountered: ${dueDate}`);
+      return "Invalid date";
+    }
+    
+    return format(date, "MMM d, yyyy");
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
+          <p className="text-xl font-medium dark:text-white">Loading tickets...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
+        <div className="rounded-lg bg-red-50 p-8 text-center dark:bg-red-900/20">
+          <p className="text-xl font-medium text-red-600 dark:text-red-400">Error</p>
+          <p className="mt-2 text-gray-600 dark:text-zinc-400">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen bg-zinc-50 py-12 px-4 sm:px-6 lg:px-8 dark:bg-black">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Active Support Tickets</h1>
+          <p className="mt-2 text-gray-600 dark:text-zinc-400">
+            A list of all active tickets sorted by due date.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="bg-white shadow overflow-hidden sm:rounded-md dark:bg-zinc-900">
+          <ul role="list" className="divide-y divide-gray-200 dark:divide-zinc-800">
+            {tickets.length === 0 ? (
+              <li className="px-6 py-12 text-center text-gray-500">No active tickets found.</li>
+            ) : (
+              tickets.map((ticket) => {
+                console.log(ticket);
+                const dateToShow = ticket.due_date === "0000-00-00" ? ticket.delivery_date : ticket.due_date;
+                return (
+                    <li key={ticket.id} className="hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">
+                      <div className="px-4 py-5 sm:px-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col">
+                            <p className="text-sm max-w-prose font-medium text-indigo-600 dark:text-indigo-400">
+                              #{ticket.id} - {ticket.description}
+                            </p>
+                            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="text-xs text-gray-500 dark:text-zinc-500">
+                              Status: <span
+                                className="font-semibold text-gray-700 dark:text-zinc-300">{ticket.status_name}</span>
+                            </span>
+                              <span className="text-xs text-gray-500 dark:text-zinc-500">•</span>
+                              <span className="text-xs text-gray-500 dark:text-zinc-500">
+                            </span>
+                              {ticket.customer_name && (
+                                  <>
+                                    <span className="text-xs text-gray-500 dark:text-zinc-500">•</span>
+                                    <span className="text-xs text-gray-500 dark:text-zinc-500">
+                                  Customer: <span
+                                        className="font-semibold text-gray-700 dark:text-zinc-300">{ticket.customer_name}</span>
+                                </span>
+                                  </>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <div
+                                className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(dateToShow)}`}>
+                              Due: {formatDueDate(dateToShow)}
+                            </div>
+                            {ticket.assigned_to_name && (
+                                <p className="text-xs text-gray-500 dark:text-zinc-500">
+                                  Assigned to: {ticket.assigned_to_name}
+                                </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                );
+              })
+            )}
+          </ul>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
