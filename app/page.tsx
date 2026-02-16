@@ -30,16 +30,26 @@ export default function Home() {
         }
         const data = await response.json();
         
-        // Sorting by due date (ascending)
+        // Sorting by due date (ascending), falling back to delivery_date
         const sortedTickets = data.sort((a: Ticket, b: Ticket) => {
-          if (!a.due_date) return 1;
-          if (!b.due_date) return -1;
+          const getEffectiveDateString = (ticket: Ticket) => {
+            if (ticket.due_date && ticket.due_date !== "0000-00-00") {
+              return ticket.due_date;
+            }
+            return ticket.delivery_date;
+          };
+
+          const dateStrA = getEffectiveDateString(a);
+          const dateStrB = getEffectiveDateString(b);
+
+          if (!dateStrA) return 1;
+          if (!dateStrB) return -1;
           
-          let dateA = parseISO(a.due_date);
-          if (!isValid(dateA)) dateA = new Date(a.due_date);
+          let dateA = parseISO(dateStrA);
+          if (!isValid(dateA)) dateA = new Date(dateStrA);
           
-          let dateB = parseISO(b.due_date);
-          if (!isValid(dateB)) dateB = new Date(b.due_date);
+          let dateB = parseISO(dateStrB);
+          if (!isValid(dateB)) dateB = new Date(dateStrB);
 
           const timeA = isValid(dateA) ? dateA.getTime() : Number.MAX_SAFE_INTEGER;
           const timeB = isValid(dateB) ? dateB.getTime() : Number.MAX_SAFE_INTEGER;
@@ -58,16 +68,17 @@ export default function Home() {
     fetchTickets();
   }, []);
 
-  const getStatusColor = (dueDate: string) => {
-    if (!dueDate) return "bg-gray-100 text-gray-800 border-gray-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700";
+  const getStatusColor = (ticket: Ticket) => {
+    const dateStr = (ticket.due_date && ticket.due_date !== "0000-00-00") 
+      ? ticket.due_date 
+      : ticket.delivery_date;
+
+    if (!dateStr) return "bg-gray-100 text-gray-800 border-gray-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700";
     
-    // Try to parse the date. If it's already an ISO string or similar, parseISO works.
-    // If it's a "YYYY-MM-DD HH:mm:ss" format, parseISO also often works in modern date-fns.
-    let date = parseISO(dueDate);
+    let date = parseISO(dateStr);
     
-    // Fallback for non-standard formats if parseISO fails
     if (!isValid(date)) {
-      date = new Date(dueDate);
+      date = new Date(dateStr);
     }
 
     if (!isValid(date)) return "bg-gray-100 text-gray-800 border-gray-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700";
@@ -86,20 +97,24 @@ export default function Home() {
     return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800"; // Safe
   };
 
-  const formatDueDate = (dueDate: string) => {
-    if (!dueDate) return "No due date";
+  const formatTicketDate = (ticket: Ticket) => {
+    const isUsingDueDate = ticket.due_date && ticket.due_date !== "0000-00-00";
+    const dateStr = isUsingDueDate ? ticket.due_date : ticket.delivery_date;
+    const label = isUsingDueDate ? "Due" : "Delivery";
+
+    if (!dateStr) return "No date set";
     
-    let date = parseISO(dueDate);
+    let date = parseISO(dateStr);
     if (!isValid(date)) {
-      date = new Date(dueDate);
+      date = new Date(dateStr);
     }
     
     if (!isValid(date)) {
-      console.warn(`Invalid date encountered: ${dueDate}`);
+      console.warn(`Invalid date encountered: ${dateStr}`);
       return "Invalid date";
     }
     
-    return format(date, "MMM d, yyyy");
+    return `${label}: ${format(date, "MMM d, yyyy")}`;
   };
 
   if (loading) {
@@ -145,52 +160,45 @@ export default function Home() {
             {tickets.length === 0 ? (
               <li className="px-6 py-12 text-center text-gray-500">No active tickets found.</li>
             ) : (
-              tickets.map((ticket) => {
-                console.log(ticket);
-                const dateToShow = ticket.due_date === "0000-00-00" ? ticket.delivery_date : ticket.due_date;
-                return (
-                    <li key={ticket.id} className="hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">
-                      <div className="px-4 py-5 sm:px-6">
-                        <div className="flex items-center justify-between">
-                          <div className="flex flex-col">
-                            <p className="text-sm max-w-prose font-medium text-indigo-600 dark:text-indigo-400">
-                              #{ticket.id} - {ticket.description}
-                            </p>
-                            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <span className="text-xs text-gray-500 dark:text-zinc-500">
-                              Status: <span
-                                className="font-semibold text-gray-700 dark:text-zinc-300">{ticket.status_name}</span>
+              tickets.map((ticket) => (
+                <li key={ticket.id} className="hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">
+                  <div className="px-4 py-5 sm:px-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <p className="text-sm max-w-prose font-medium text-indigo-600 dark:text-indigo-400">
+                          #{ticket.ticket_number || ticket.id} - {ticket.subject || ticket.description}
+                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="text-xs text-gray-500 dark:text-zinc-500">
+                          Status: <span
+                            className="font-semibold text-gray-700 dark:text-zinc-300">{ticket.status_name}</span>
+                        </span>
+                          {ticket.customer_name && (
+                              <>
+                                <span className="text-xs text-gray-500 dark:text-zinc-500">•</span>
+                                <span className="text-xs text-gray-500 dark:text-zinc-500">
+                              Customer: <span
+                                    className="font-semibold text-gray-700 dark:text-zinc-300">{ticket.customer_name}</span>
                             </span>
-                              <span className="text-xs text-gray-500 dark:text-zinc-500">•</span>
-                              <span className="text-xs text-gray-500 dark:text-zinc-500">
-                            </span>
-                              {ticket.customer_name && (
-                                  <>
-                                    <span className="text-xs text-gray-500 dark:text-zinc-500">•</span>
-                                    <span className="text-xs text-gray-500 dark:text-zinc-500">
-                                  Customer: <span
-                                        className="font-semibold text-gray-700 dark:text-zinc-300">{ticket.customer_name}</span>
-                                </span>
-                                  </>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-end gap-2">
-                            <div
-                                className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(dateToShow)}`}>
-                              Due: {formatDueDate(dateToShow)}
-                            </div>
-                            {ticket.assigned_to_name && (
-                                <p className="text-xs text-gray-500 dark:text-zinc-500">
-                                  Assigned to: {ticket.assigned_to_name}
-                                </p>
-                            )}
-                          </div>
+                              </>
+                          )}
                         </div>
                       </div>
-                    </li>
-                );
-              })
+                      <div className="flex flex-col items-end gap-2">
+                        <div
+                            className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(ticket)}`}>
+                          {formatTicketDate(ticket)}
+                        </div>
+                        {ticket.assigned_to_name && (
+                            <p className="text-xs text-gray-500 dark:text-zinc-500">
+                              Assigned to: {ticket.assigned_to_name}
+                            </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              ))
             )}
           </ul>
         </div>
