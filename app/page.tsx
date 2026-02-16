@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { format, isPast, isToday, addDays, parseISO, isValid } from "date-fns";
+import Link from "next/link";
 
 interface Ticket {
+  assigned_to_user: string;
+  order_assigned_to_name: string;
   delivery_date: string;
   description: string;
   id: string;
@@ -14,6 +17,7 @@ interface Ticket {
   created_at: string;
   customer_name?: string;
   assigned_to_name?: string;
+  type?: string;
 }
 
 export default function Home() {
@@ -145,62 +149,76 @@ export default function Home() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-zinc-50 py-12 px-4 sm:px-6 lg:px-8 dark:bg-black">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Active Support Tickets</h1>
-          <p className="mt-2 text-gray-600 dark:text-zinc-400">
-            A list of all active tickets sorted by due date.
-          </p>
-        </div>
+  const serviceTickets = tickets.filter(t => t.type?.toLowerCase().includes('service'));
+  const adTickets = tickets.filter(t => t.type?.toLowerCase().includes('ad') || (!t.type?.toLowerCase().includes('service')));
 
-        <div className="bg-white shadow overflow-hidden sm:rounded-md dark:bg-zinc-900">
-          <ul role="list" className="divide-y divide-gray-200 dark:divide-zinc-800">
-            {tickets.length === 0 ? (
-              <li className="px-6 py-12 text-center text-gray-500">No active tickets found.</li>
-            ) : (
-              tickets.map((ticket) => (
-                <li key={ticket.id} className="hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">
+  const TicketList = ({ title, ticketsList }: { title: string; ticketsList: Ticket[] }) => (
+    <div className="flex flex-col gap-4">
+      <h2 className="text-xl font-semibold text-gray-800 dark:text-zinc-200 px-1">{title} ({ticketsList.length})</h2>
+      <div className="bg-white shadow overflow-hidden sm:rounded-md dark:bg-zinc-900">
+        <ul role="list" className="divide-y divide-gray-200 dark:divide-zinc-800">
+          {ticketsList.length === 0 ? (
+            <li className="px-6 py-12 text-center text-gray-500">No {title.toLowerCase()} tickets found.</li>
+          ) : (
+            ticketsList.map((ticket) => (
+              <Link key={ticket.id} href={`https://evergreenmedia.adorbit.com/tickets/ticket/?id=${ticket.id}`}>
+                <li className="hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">
                   <div className="px-4 py-5 sm:px-6">
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col">
-                        <p className="text-sm max-w-prose font-medium text-indigo-600 dark:text-indigo-400">
+                        <p className="text-sm max-w-96 font-medium text-indigo-600 dark:text-indigo-400">
                           #{ticket.ticket_number || ticket.id} - {ticket.subject || ticket.description}
                         </p>
                         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className="text-xs text-gray-500 dark:text-zinc-500">
-                          Status: <span
-                            className="font-semibold text-gray-700 dark:text-zinc-300">{ticket.status_name}</span>
-                        </span>
+                          <span className="text-xs text-gray-500 dark:text-zinc-500">
+                            Status: <span className="font-semibold text-gray-700 dark:text-zinc-300">{ticket.status_name}</span>
+                          </span>
                           {ticket.customer_name && (
-                              <>
-                                <span className="text-xs text-gray-500 dark:text-zinc-500">•</span>
-                                <span className="text-xs text-gray-500 dark:text-zinc-500">
-                              Customer: <span
-                                    className="font-semibold text-gray-700 dark:text-zinc-300">{ticket.customer_name}</span>
-                            </span>
-                              </>
+                            <>
+                              <span className="text-xs text-gray-500 dark:text-zinc-500">•</span>
+                              <span className="text-xs text-gray-500 dark:text-zinc-500">
+                                Customer: <span className="font-semibold text-gray-700 dark:text-zinc-300">{ticket.customer_name}</span>
+                              </span>
+                            </>
                           )}
+                        </div>
+
+                        {/* Assigned To Section */}
+                        <div className="mt-3 flex items-center gap-2">
+                          <span className="text-xs text-gray-600 dark:text-zinc-400">
+                            <span className="font-medium">Assigned to:</span> {ticket.assigned_to_user || "Unassigned"}
+                          </span>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                        <div
-                            className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(ticket)}`}>
+                        <div className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(ticket)}`}>
                           {formatTicketDate(ticket)}
                         </div>
-                        {ticket.assigned_to_name && (
-                            <p className="text-xs text-gray-500 dark:text-zinc-500">
-                              Assigned to: {ticket.assigned_to_name}
-                            </p>
-                        )}
                       </div>
                     </div>
                   </div>
                 </li>
-              ))
-            )}
-          </ul>
+              </Link>
+            ))
+          )}
+        </ul>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-zinc-50 py-12 px-4 sm:px-6 lg:px-8 dark:bg-black">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Active Support Tickets</h1>
+          <p className="mt-2 text-gray-600 dark:text-zinc-400">
+            A list of all active tickets sorted by due date, separated by type.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <TicketList title="Service Tickets" ticketsList={serviceTickets} />
+          <TicketList title="Ad Tickets" ticketsList={adTickets} />
         </div>
       </div>
     </div>
