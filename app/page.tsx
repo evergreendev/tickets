@@ -288,56 +288,61 @@ export default function Home() {
               <Link key={ticket.id} href={`https://evergreenmedia.adorbit.com/tickets/ticket/?id=${ticket.id}`}>
                 <li className="hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">
                   <div className="px-4 py-5 sm:px-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col">
-                        <p className="text-sm max-w-96 font-medium text-indigo-600 dark:text-indigo-400">
-                          #{ticket.ticket_number || ticket.id} - {ticket.subject || ticket.description}
-                        </p>
-                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <span className="text-xs text-gray-500 dark:text-zinc-500">
-                            Status: <span className="font-semibold text-gray-700 dark:text-zinc-300">{ticket.status_name}</span>
-                          </span>
-                          {ticket.customer_name && (
-                            <>
-                              <span className="text-xs text-gray-500 dark:text-zinc-500">•</span>
-                              <span className="text-xs text-gray-500 dark:text-zinc-500">
-                                Customer: <span className="font-semibold text-gray-700 dark:text-zinc-300">{ticket.customer_name}</span>
-                              </span>
-                            </>
-                          )}
-                          {ticket.pub_name && (
-                            <>
-                              <span className="text-xs text-gray-500 dark:text-zinc-500">•</span>
-                              <span className="text-xs text-gray-500 dark:text-zinc-500">
-                                Pub: <span className="font-semibold text-gray-700 dark:text-zinc-300">{ticket.pub_name}</span>
-                              </span>
-                            </>
-                          )}
-                          {ticket.iss_name && (
-                            <>
-                              <span className="text-xs text-gray-500 dark:text-zinc-500">•</span>
-                              <span className="text-xs text-gray-500 dark:text-zinc-500">
-                                Issue: <span className="font-semibold text-gray-700 dark:text-zinc-300">{ticket.iss_name}</span>
-                              </span>
-                            </>
-                          )}
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between items-center text-[10px] uppercase tracking-wider font-semibold">
+                        <div className="text-gray-400 dark:text-zinc-500">
+                          Last Updated: {ticket.last_updated ? format(parseISO(ticket.last_updated), "MMM d, h:mm a") : "N/A"}
                         </div>
-
-                        {/* Assigned To Section */}
-                        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-                          <span className="text-xs text-gray-600 dark:text-zinc-400">
-                            <span className="font-medium">Assigned to:</span> {ticket.assigned_to_user || "Unassigned"}
-                          </span>
-                          {ticket.size && (
-                            <span className="text-xs text-gray-600 dark:text-zinc-400">
-                              <span className="font-medium">Size:</span> {ticket.size}
-                            </span>
-                          )}
+                        <div className={`px-2 py-0.5 rounded-full border ${getStatusColor(ticket)}`}>
+                          {formatTicketDate(ticket)}
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <div className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(ticket)}`}>
-                          {formatTicketDate(ticket)}
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <p className="text-sm max-w-96 font-medium text-indigo-600 dark:text-indigo-400">
+                            #{ticket.ticket_number || ticket.id} - {ticket.subject || ticket.description}
+                          </p>
+                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="text-xs text-gray-500 dark:text-zinc-500">
+                              Status: <span className="font-semibold text-gray-700 dark:text-zinc-300">{ticket.status_name}</span>
+                            </span>
+                            {ticket.customer_name && (
+                              <>
+                                <span className="text-xs text-gray-500 dark:text-zinc-500">•</span>
+                                <span className="text-xs text-gray-500 dark:text-zinc-500">
+                                  Customer: <span className="font-semibold text-gray-700 dark:text-zinc-300">{ticket.customer_name}</span>
+                                </span>
+                              </>
+                            )}
+                            {ticket.pub_name && (
+                              <>
+                                <span className="text-xs text-gray-500 dark:text-zinc-500">•</span>
+                                <span className="text-xs text-gray-500 dark:text-zinc-500">
+                                  Pub: <span className="font-semibold text-gray-700 dark:text-zinc-300">{ticket.pub_name}</span>
+                                </span>
+                              </>
+                            )}
+                            {ticket.iss_name && (
+                              <>
+                                <span className="text-xs text-gray-500 dark:text-zinc-500">•</span>
+                                <span className="text-xs text-gray-500 dark:text-zinc-500">
+                                  Issue: <span className="font-semibold text-gray-700 dark:text-zinc-300">{ticket.iss_name}</span>
+                                </span>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Assigned To Section */}
+                          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+                            <span className="text-xs text-gray-600 dark:text-zinc-400">
+                              <span className="font-medium">Assigned to:</span> {ticket.assigned_to_user || "Unassigned"}
+                            </span>
+                            {ticket.size && (
+                              <span className="text-xs text-gray-600 dark:text-zinc-400">
+                                <span className="font-medium">Size:</span> {ticket.size}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
