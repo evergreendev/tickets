@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { format, isPast, isToday, addDays, parseISO, isValid } from "date-fns";
 import Link from "next/link";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 interface Ticket {
   assigned_to_user: string;
@@ -26,16 +27,36 @@ interface Ticket {
 
 type SortField = "due_date" | "pub_name" | "last_updated";
 
-export default function Home() {
+function HomeContent() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [serviceFilter, setServiceFilter] = useState<string>("all");
-  const [serviceSort, setServiceSort] = useState<SortField>("due_date");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const [adFilter, setAdFilter] = useState<string>("all");
-  const [adSort, setAdSort] = useState<SortField>("due_date");
+  const serviceFilter = searchParams.get("serviceFilter") || "all";
+  const serviceSort = (searchParams.get("serviceSort") as SortField) || "due_date";
+  const adFilter = searchParams.get("adFilter") || "all";
+  const adSort = (searchParams.get("adSort") as SortField) || "due_date";
+
+  const updateQueryParams = (updates: Record<string, string>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(updates)) {
+      if (value === "all" || (key.endsWith("Sort") && value === "due_date")) {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    }
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
+  const setServiceFilter = (v: string) => updateQueryParams({ serviceFilter: v });
+  const setServiceSort = (v: SortField) => updateQueryParams({ serviceSort: v });
+  const setAdFilter = (v: string) => updateQueryParams({ adFilter: v });
+  const setAdSort = (v: SortField) => updateQueryParams({ adSort: v });
 
   useEffect(() => {
     async function fetchTickets() {
@@ -388,5 +409,20 @@ export default function Home() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
+          <p className="text-xl font-medium dark:text-white">Loading...</p>
+        </div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
