@@ -260,19 +260,19 @@ export default function Home() {
             <div className="text-sm px-2">Sort by:</div>
             <button 
               onClick={() => setSort("due_date")}
-              className={`text-[10px] px-2 py-1 rounded ${sort === "due_date" ? "bg-white dark:bg-zinc-700 shadow-sm font-bold" : "text-gray-500"}`}
+              className={`cursor-pointer text-[10px] px-2 py-1 rounded ${sort === "due_date" ? "bg-white dark:bg-zinc-700 shadow-sm font-bold" : "text-gray-500"}`}
             >
               Due Date
             </button>
             <button 
               onClick={() => setSort("pub_name")}
-              className={`text-[10px] px-2 py-1 rounded ${sort === "pub_name" ? "bg-white dark:bg-zinc-700 shadow-sm font-bold" : "text-gray-500"}`}
+              className={`cursor-pointer text-[10px] px-2 py-1 rounded ${sort === "pub_name" ? "bg-white dark:bg-zinc-700 shadow-sm font-bold" : "text-gray-500"}`}
             >
               Publication
             </button>
             <button 
               onClick={() => setSort("last_updated")}
-              className={`text-[10px] px-2 py-1 rounded ${sort === "last_updated" ? "bg-white dark:bg-zinc-700 shadow-sm font-bold" : "text-gray-500"}`}
+              className={`cursor-pointer text-[10px] px-2 py-1 rounded ${sort === "last_updated" ? "bg-white dark:bg-zinc-700 shadow-sm font-bold" : "text-gray-500"}`}
             >
               Updated
             </button>
